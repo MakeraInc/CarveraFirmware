@@ -5,6 +5,7 @@ To let the Carvera work perfectly, please make sure both your controller softwar
 Fixed the WiFi special character bug.
 Fixed the identical WiFi SSID display problem.
 Fixed the WiFi connectivity unstable problem.
+Fixed the spindle stop earlier issue when doing a tool change.
 
 [0.9.2]
 Initial version.
