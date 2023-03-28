@@ -2,8 +2,10 @@ Notice:
 To let the Carvera work perfectly, please make sure both your controller software and firmware are up to date. For firmware, download the new firmware first, then use the 'update' function to upgrade the firmware, and reset the machine after the update is complete.
 
 [0.9.4]
-Added the 'goto' functoin for 
+Added the 'goto' function for resuming a job from a certain line.
 Added the WiFi Access Point password setting and enable/disable function.
+
+See the usage at: https://github.com/MakeraInc/CarveraFirmware/releases/tag/v0.9.4
 
 [0.9.3]
 Fixed the WiFi special character bug.
