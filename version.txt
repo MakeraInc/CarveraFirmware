@@ -1,6 +1,10 @@
 Notice: 
 To let the Carvera work perfectly, please make sure both your controller software and firmware are up to date. For firmware, download the new firmware first, then use the 'update' function to upgrade the firmware, and reset the machine after the update is complete.
 
+[0.9.5]
+Optimized the WiFi connection file transfer speed and stability.
+Added software limit functions to reduce machine resets caused by the false triggering of limit switches.
+
 [0.9.4]
 Added the 'goto' function for resuming a job from a certain line.
 Added the WiFi Access Point password setting and enable/disable function.
