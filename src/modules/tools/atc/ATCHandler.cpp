@@ -141,6 +141,14 @@ void ATCHandler::fill_change_scripts(int new_tool, bool clear_z) {
 
 void ATCHandler::fill_drop_scripts(int old_tool) {
 	char buff[100];
+	for (int i = X_AXIS; i <= Z_AXIS; ++i) {
+		if (!THEROBOT->is_homed(i)){
+			THEKERNEL->set_halt_reason(HOME_FAIL);
+			THEKERNEL->call_event(ON_HALT, nullptr);
+			THEKERNEL->streams->printf("Machine has not been homed\n");
+			return;
+		}
+	}
 	struct atc_tool *current_tool = &atc_tools[old_tool];
 	// set atc status
 	this->script_queue.push("M497.1");
@@ -174,6 +182,14 @@ void ATCHandler::fill_drop_scripts(int old_tool) {
 
 void ATCHandler::fill_pick_scripts(int new_tool, bool clear_z) {
 	char buff[100];
+	for (int i = X_AXIS; i <= Z_AXIS; ++i) {
+		if (!THEROBOT->is_homed(i)){
+			THEKERNEL->set_halt_reason(HOME_FAIL);
+			THEKERNEL->call_event(ON_HALT, nullptr);
+			THEKERNEL->streams->printf("Machine has not been homed\n");
+			return;
+		}
+	}
 	struct atc_tool *current_tool = &atc_tools[new_tool];
 	// set atc status
 	this->script_queue.push("M497.2");
@@ -211,7 +227,15 @@ void ATCHandler::fill_pick_scripts(int new_tool, bool clear_z) {
 
 void ATCHandler::fill_cali_scripts(bool is_probe, bool clear_z) {
 	char buff[100];
-	
+	for (int i = X_AXIS; i <= Z_AXIS; ++i) {
+		if (!THEROBOT->is_homed(i)){
+			THEKERNEL->set_halt_reason(HOME_FAIL);
+			THEKERNEL->call_event(ON_HALT, nullptr);
+			THEKERNEL->streams->printf("Machine has not been homed\n");
+			return;
+		}
+	}
+
 	if(is_probe){
 	// open probe laser
 		this->script_queue.push("M494.1");
@@ -373,7 +397,14 @@ void ATCHandler::fill_zprobe_scripts(float x_pos, float y_pos, float x_offset, f
 
 void ATCHandler::fill_zprobe_abs_scripts() {
 	char buff[100];
-
+	for (int i = X_AXIS; i <= Z_AXIS; ++i) {
+		if (!THEROBOT->is_homed(i)){
+			THEKERNEL->set_halt_reason(HOME_FAIL);
+			THEKERNEL->call_event(ON_HALT, nullptr);
+			THEKERNEL->streams->printf("Machine has not been homed\n");
+			return;
+		}
+	}
 	// set atc status
 	this->script_queue.push("M497.5");	
 	
@@ -504,7 +535,14 @@ void ATCHandler::fill_autolevel_scripts(float x_pos, float y_pos,
 		float x_size, float y_size, int x_grids, int y_grids, float height)
 {
 	char buff[100];
-
+	for (int i = X_AXIS; i <= Z_AXIS; ++i) {
+		if (!THEROBOT->is_homed(i)){
+			THEKERNEL->set_halt_reason(HOME_FAIL);
+			THEKERNEL->call_event(ON_HALT, nullptr);
+			THEKERNEL->streams->printf("Machine has not been homed\n");
+			return;
+		}
+	}
 	// set atc status
 	this->script_queue.push("M497.6");
 	

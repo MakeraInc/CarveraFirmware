@@ -101,6 +101,8 @@ class Robot : public Module {
             uint8_t plane_axis_2:2;
         };
 
+        bool is_homed(uint8_t i) const;
+
     private:
         enum MOTION_MODE_T {
             NONE,
@@ -116,7 +118,7 @@ class Robot : public Module {
         bool append_arc( Gcode* gcode, const float target[], const float offset[], float radius, bool is_clockwise );
         bool compute_arc(Gcode* gcode, const float offset[], const float target[], enum MOTION_MODE_T motion_mode);
         void process_move(Gcode *gcode, enum MOTION_MODE_T);
-        bool is_homed(uint8_t i) const;
+        
 
         float theta(float x, float y);
         void select_plane(uint8_t axis_0, uint8_t axis_1, uint8_t axis_2);
