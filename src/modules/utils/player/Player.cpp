@@ -931,12 +931,20 @@ void Player::resume_command(string parameters, StreamOutput *stream )
         THEROBOT->absolute_mode = true;
 
         char buf[128];
-        snprintf(buf, sizeof(buf), "G1 X%.3f Y%.3f Z%.3f F%.3f", saved_position[0], saved_position[1], saved_position[2], THEROBOT->from_millimeters(1000));
+        char buf2[128];
+        snprintf(buf, sizeof(buf), "G21 G1 X%.3f Y%.3f Z%.3f F%.3f", saved_position[0], saved_position[1], saved_position[2], THEROBOT->from_millimeters(1000));
+        snprintf(buf2, sizeof(buf), "G%i", THEROBOT->inch_mode ? 20 : 21);
+        stream->printf("G%i\n",THEROBOT->inch_mode ? 20 : 21);
         struct SerialMessage message;
         message.message = buf;
         message.stream = &(StreamOutput::NullStream);
         message.line = 0;
         THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
+        // fixed ur bug 3863 Pantherbotics -- Rohan & Alex
+        message.message= buf2;
+        message.line = 0;
+        THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message);
+
 
     	if (current_motion_mode > 1) {
             snprintf(buf, sizeof(buf), "G%d", current_motion_mode - 1);
