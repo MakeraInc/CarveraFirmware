@@ -1,6 +1,15 @@
 Notice: 
 To let the Carvera work perfectly, please make sure both your controller software and firmware are up to date. For firmware, download the new firmware first, then use the 'update' function to upgrade the firmware, and reset the machine after the update is complete.
 
+[1.0.4]
+1.​​Bug Fix​​: Fixed an issue where a line in G-code containing a line number (N) but no G-command would be ignored.
+2.​​Bug Fix​​: Resolved an issue where the hotspot subnet might overlap with the router subnet.
+3.​​Bug Fix​​: Corrected the Shrink Acommand, changing it from compressing machine coordinates to compressing work coordinates.
+4.​​Optimization​​: Improved firmware-Controller communication for more reliable file transfers.
+5.​​Optimization​​: Paused the lid detection alarm function during tool changes on the ​​Carvera Air​​.
+6.​​Optimization​​: Optimized the path movement to the work origin before machining to prevent collisions with the workpiece or fixture.
+7.​​Optimization​​: Updated the Wi-Fi driver.
+
 [1.0.3]
 1. Bug fixing: When the distance between the start and end points of an arc is less than 0.00025, the actual machining process results in a full circle instead of the intended arc.
 2. Bug fixing: Resolved the issue where Carvera AIR triggers a manual alarm when the tool number exceeds 255.
