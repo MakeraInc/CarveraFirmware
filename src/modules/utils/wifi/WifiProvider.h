@@ -65,7 +65,6 @@ private:
 
     void on_pin_rise();
     void receive_wifi_data();
-    void processPacket();
     unsigned int crc16_ccitt(unsigned char *data, unsigned int len);
     int CheckFilePacket(char** buf);
     
@@ -99,7 +98,6 @@ private:
     };
     
     ParseState currentState = WAIT_HEADER;    
-    std::vector<uint8_t> packetData;
     int ptrData;
     int ptr_xbuff;
     
