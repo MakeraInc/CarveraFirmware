@@ -97,6 +97,11 @@ private:
     void fill_autolevel_scripts(float x_pos, float y_pos, float x_size, float y_size, int x_grids, int y_grids, float height);
     void fill_goto_origin_scripts(float x_pos, float y_pos);
 
+    void fill_OutCorner_scripts(float tool_dia, float X_distance, float Y_distance, float Z_distance);
+    void fill_InCorner_scripts(float tool_dia, float X_distance, float Y_distance, float Z_distance);
+    void fill_InPocket_scripts(float tool_dia, float X_distance, float Y_distance, float Z_distance);
+    void fill_OutPocket_scripts(float tool_dia, float X_distance, float Y_distance, float Z_distance);
+    void fill_Autoclean_scripts(float Clean_cycles, float Clean_tap);
     void clear_script_queue();
 
     void rapid_move(bool mc, float x, float y, float z, float a, float b);
