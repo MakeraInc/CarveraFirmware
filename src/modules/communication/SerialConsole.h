@@ -46,7 +46,6 @@ class SerialConsole : public Module, public StreamOutput {
    private:
    		
     	void PacketMessage(char cmd, const char* s, int size);
-	    void processPacket();
     	int CheckFilePacket(char** buf);
 	    unsigned int crc16_ccitt(unsigned char *data, unsigned int len);
         mbed::Serial* serial;
@@ -56,9 +55,7 @@ class SerialConsole : public Module, public StreamOutput {
           bool diagnose_flag:1;
         };
     	ParseState currentState = WAIT_HEADER;    
-        RingBuffer<char,256> buffer;             // Receive buffer
-        
-		char packetData[256];
+    	
 	    int ptrData;
 	    int ptr_xbuff;
 };
