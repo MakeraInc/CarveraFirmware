@@ -59,7 +59,7 @@ void GcodeDispatch::on_console_line_received(void *line)
 
     // just reply ok to empty lines
     if(possible_command.empty()) {
-        new_message.stream->printf("ok\r\n");
+//        new_message.stream->printf("ok\r\n");
         return;
     }
 
@@ -169,7 +169,7 @@ try_again:
 							THEKERNEL->call_event(ON_HALT, (void *)1); // clears on_halt
 							new_message.stream->printf("WARNING: After HALT you should HOME as position is currently unknown\n");
 						}
-						new_message.stream->printf("ok\n");
+//						new_message.stream->printf("ok\n");
 						delete gcode;
 						return;
 
@@ -220,7 +220,7 @@ try_again:
 						// optimize G1 to send ok immediately (one per line) before it is planned
 						if(!sent_ok) {
 							sent_ok= true;
-							new_message.stream->printf("ok\n");
+//							new_message.stream->printf("ok\n");
 						}
 					}
 
@@ -303,7 +303,7 @@ try_again:
 							string str= single_command.substr(4) + possible_command;
 							PublicData::set_value( panel_checksum, panel_display_message_checksum, &str );
 							delete gcode;
-							new_message.stream->printf("ok\r\n");
+//							new_message.stream->printf("ok\r\n");
 							return;
 						}
 
@@ -327,7 +327,7 @@ try_again:
 								}
 							}
 
-							new_message.stream->printf("ok\r\n");
+//							new_message.stream->printf("ok\r\n");
 							return;
 						}
 
@@ -360,7 +360,7 @@ try_again:
 								SimpleShell::parse_command((gcode->m == 501) ? "load_command" : "save_command", arg, new_message.stream);
 							}
 							delete gcode;
-							new_message.stream->printf("ok\r\n");
+//							new_message.stream->printf("ok\r\n");
 							return;
 
 						case 502: // M502 deletes config-override so everything defaults to what is in config
@@ -422,10 +422,12 @@ try_again:
 						if(THEKERNEL->is_ok_per_line() || THEKERNEL->is_grbl_mode()) {
 							// only send ok once per line if this is a multi g code line send ok on the last one
 							if(possible_command.empty())
-								new_message.stream->printf("ok\r\n");
+							{
+//								new_message.stream->printf("ok\r\n");
+							}
 						} else {
 							// maybe should do the above for all hosts?
-							new_message.stream->printf("ok\r\n");
+//							new_message.stream->printf("ok\r\n");
 						}
 					}
 				}
@@ -447,7 +449,7 @@ try_again:
 
 				if(upload_fd == NULL) {
 					// error detected writing to file so discard everything until it stops
-					new_message.stream->printf("ok\r\n");
+//					new_message.stream->printf("ok\r\n");
 					continue;
 				}
 
@@ -460,7 +462,7 @@ try_again:
 					continue;
 
 				} else {
-					 new_message.stream->printf("ok\r\n");
+//					 new_message.stream->printf("ok\r\n");
 					//printf("uploading file write ok\n");
 				}
 			}
