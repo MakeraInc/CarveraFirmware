@@ -340,6 +340,10 @@ void Player::play_command( string parameters, StreamOutput *stream )
 //		return;
 //	}
 
+	if (!THEROBOT->is_homed_all_axes()) {
+		return;
+	}
+
     // extract any options from the line and terminate the line there
     string options= extract_options(parameters);
     // Get filename which is the entire parameter line upto any options found or entire line
