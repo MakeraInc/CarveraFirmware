@@ -180,6 +180,9 @@ class Kernel {
         
         void set_cachewait(bool f) { cachewait = f; }
         bool is_cachewait() const { return cachewait; }
+        
+        void set_3DProbeMode(bool f) {b_3DProbeMode = f;}
+        bool is_3DProbeMode() const { return b_3DProbeMode; }
 
         void read_eeprom_data();
         void write_eeprom_data();
@@ -252,6 +255,7 @@ class Kernel {
             bool zprobing:1;
             bool probeLaserOn:1;
             volatile bool cachewait:1;
+            bool b_3DProbeMode:1;
         };
         int iic_page_write(unsigned char u8PageNum, unsigned char u8len, unsigned char *pu8Array);
 
