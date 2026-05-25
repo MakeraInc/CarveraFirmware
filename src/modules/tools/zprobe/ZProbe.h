@@ -26,10 +26,12 @@ class ZProbe: public Module
 {
 
 public:
-    ZProbe() : invert_override(false),invert_probe(false) {};
+    ZProbe() : invert_override(false), invert_probe(false), motion_probe_guard(true),
+        probe_guard_halt_pending(false), motion_guard_db(0) {};
     virtual ~ZProbe() {};
 
     void on_module_loaded();
+    void on_idle(void *argument);
     void on_gcode_received(void *argument);
 
     bool run_probe(float& mm, float feedrate, float max_dist= -1, bool reverse= false);
@@ -85,6 +87,11 @@ private:
         bool invert_override:1;
         bool invert_probe:1;
     };
+
+    // G0/G1: probe trigger while moving => stop motors (here) then HALT in on_idle
+    bool motion_probe_guard;
+    volatile bool probe_guard_halt_pending;
+    uint16_t motion_guard_db;
 };
 
 #endif /* ZPROBE_H_ */
