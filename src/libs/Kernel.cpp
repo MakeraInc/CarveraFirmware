@@ -89,6 +89,7 @@ Kernel::Kernel()
     checkled = false;
     spindleon = false;
     cachewait = false;
+    b_3DProbeMode = false;
 
     instance = this; // setup the Singleton instance of the kernel    
     
@@ -519,7 +520,8 @@ std::string Kernel::get_diagnose_string()
 
     // get switchs state
     struct pad_switch pad;
-    if(THEKERNEL->factory_set->FuncSetting & (1<<2))	//ATC 
+//    if(THEKERNEL->factory_set->FuncSetting & (1<<2))	//ATC 
+	if(CARVERA == THEKERNEL->factory_set->MachineModel)	//lsf modify 2026.04.27
     {
     	ok = PublicData::get_value(switch_checksum, get_checksum("vacuum"), 0, &pad);
     }
