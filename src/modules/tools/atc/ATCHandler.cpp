@@ -232,6 +232,7 @@ void ATCHandler::fill_cali_scripts(bool is_probe, bool clear_z) {
 	if(is_probe){
 	// open probe laser
 		this->script_queue.push("M494.1");
+		THEKERNEL->set_3DProbeMode(true);
 	}
 	// set atc status
 	this->script_queue.push("M497.3");
@@ -286,6 +287,7 @@ void ATCHandler::fill_cali_scripts(bool is_probe, bool clear_z) {
 	if(is_probe){
 		// close probe laser	
 	    this->script_queue.push("M494.2");
+	    THEKERNEL->set_3DProbeMode(false);
 	}
 }
 
@@ -348,6 +350,8 @@ void ATCHandler::fill_zprobe_scripts(float x_pos, float y_pos, float x_offset, f
 	
     // open wired probe laser
     this->script_queue.push("M494.1");
+    
+    THEKERNEL->set_3DProbeMode(true);
 
 	// lift z to safe position with fast speed
 	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT->from_millimeters(this->clearance_z));
@@ -386,6 +390,8 @@ void ATCHandler::fill_zprobe_scripts(float x_pos, float y_pos, float x_offset, f
 	
     // close wired probe laser
     this->script_queue.push("M494.2");
+    
+    THEKERNEL->set_3DProbeMode(false);
 }
 
 void ATCHandler::fill_zprobe_abs_scripts() {
@@ -398,6 +404,8 @@ void ATCHandler::fill_zprobe_abs_scripts() {
 	
     // open wired probe laser
     this->script_queue.push("M494.1");
+    
+    THEKERNEL->set_3DProbeMode(true);
 
 	// lift z to safe position with fast speed
 	snprintf(buff, sizeof(buff), "G53 G0 Z%.3f", THEROBOT->from_millimeters(clearance_z));
@@ -451,6 +459,8 @@ void ATCHandler::fill_zprobe_abs_scripts() {
 	
     // close wired probe laser
     this->script_queue.push("M494.2");
+    
+    THEKERNEL->set_3DProbeMode(false);
 }
 
 void ATCHandler::fill_xyzprobe_scripts(float tool_dia, float probe_height) {
@@ -461,6 +471,8 @@ void ATCHandler::fill_xyzprobe_scripts(float tool_dia, float probe_height) {
 
 	// open wired probe laser
 	this->script_queue.push("M494.1");
+	
+	THEKERNEL->set_3DProbeMode(true);
 
 	// do z probe with slow speed
 	if(THEKERNEL->factory_set->FuncSetting & (1<<2))	//ATC 
@@ -515,6 +527,8 @@ void ATCHandler::fill_xyzprobe_scripts(float tool_dia, float probe_height) {
 	
 	// close wired probe laser
 	this->script_queue.push("M494.2");
+	
+	THEKERNEL->set_3DProbeMode(false);
 
 }
 
@@ -525,6 +539,8 @@ void ATCHandler::fill_OutCorner_scripts(float tool_dia, float X_distance, float 
 	
 	// open wired probe laser
 	this->script_queue.push("M494.1");
+	
+	THEKERNEL->set_3DProbeMode(true);
 	
 	// set atc status
 	this->script_queue.push("M497.5");
@@ -582,8 +598,8 @@ void ATCHandler::fill_OutCorner_scripts(float tool_dia, float X_distance, float 
     // recover move speed
     snprintf(buff, sizeof(buff), "M220S100"); 	 
 	this->script_queue.push(buff);
-	// do x probe with fast speed
-	snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", X_distance, probe_fast_rate);
+	// do x probe with slow speed
+	snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", X_distance, probe_slow_rate);
 	this->script_queue.push(buff);
 	
 	// retract X
@@ -594,7 +610,7 @@ void ATCHandler::fill_OutCorner_scripts(float tool_dia, float X_distance, float 
 	this->script_queue.push(buff);
 	
 	// do x probe with slow speed
-	snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", X_distance, probe_slow_rate);
+	snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", X_distance, probe_slow_rate / 2);
 	this->script_queue.push(buff);
 
 	// set x origin
@@ -635,8 +651,8 @@ void ATCHandler::fill_OutCorner_scripts(float tool_dia, float X_distance, float 
     snprintf(buff, sizeof(buff), "M220S100"); 	 
 	this->script_queue.push(buff);
 
-	// do Y probe with fast speed
-	snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", -Y_distance, probe_fast_rate);
+	// do Y probe with slow speed
+	snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", -Y_distance, probe_slow_rate);
 	this->script_queue.push(buff);
 	
 	// retract Y
@@ -647,7 +663,7 @@ void ATCHandler::fill_OutCorner_scripts(float tool_dia, float X_distance, float 
 	this->script_queue.push(buff);
 	
 	// do Y probe with slow speed
-	snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", -Y_distance, probe_slow_rate);
+	snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", -Y_distance, probe_slow_rate / 2);
 	this->script_queue.push(buff);
 
 	// set Y origin
@@ -673,7 +689,9 @@ void ATCHandler::fill_OutCorner_scripts(float tool_dia, float X_distance, float 
 	this->script_queue.push(buff);	
 	
 	// close wired probe laser
-	this->script_queue.push("M494.2");
+//	this->script_queue.push("M494.2");	lsf modify 2026.05.11
+	
+	THEKERNEL->set_3DProbeMode(false);
 }
 void ATCHandler::fill_InCorner_scripts(float tool_dia, float X_distance, float Y_distance, float Z_distance) {
 	char buff[100];
@@ -685,6 +703,8 @@ void ATCHandler::fill_InCorner_scripts(float tool_dia, float X_distance, float Y
     message.message.assign("M494.1", 6);
     message.stream = THEKERNEL->streams;
     THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
+    
+    THEKERNEL->set_3DProbeMode(true);
 
 	// set atc status
     message.message.assign("M497.5", 6);
@@ -758,8 +778,8 @@ void ATCHandler::fill_InCorner_scripts(float tool_dia, float X_distance, float Y
     THECONVEYOR->wait_for_idle();
     THEROBOT->get_current_machine_position(mpos2);
 	
-	// do x probe with fast speed
-	snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", -X_distance, probe_fast_rate);
+	// do x probe with slow speed
+	snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", -X_distance, probe_slow_rate);
 	message.message.assign(buff, sizeof(buff));
     THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 	
@@ -772,7 +792,7 @@ void ATCHandler::fill_InCorner_scripts(float tool_dia, float X_distance, float Y
     THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 	
 	// do x probe with slow speed
-	snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", -X_distance, probe_slow_rate);
+	snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", -X_distance, probe_slow_rate / 2);
 	message.message.assign(buff, sizeof(buff));
     THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 
@@ -790,8 +810,8 @@ void ATCHandler::fill_InCorner_scripts(float tool_dia, float X_distance, float Y
 	message.message.assign(buff, sizeof(buff));
     THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
     
-	// do Y probe with fast speed
-	snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", Y_distance, probe_fast_rate);
+	// do Y probe with slow speed
+	snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", Y_distance, probe_slow_rate);
 	message.message.assign(buff, sizeof(buff));
     THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 	
@@ -804,7 +824,7 @@ void ATCHandler::fill_InCorner_scripts(float tool_dia, float X_distance, float Y
     THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 	
 	// do Y probe with slow speed
-	snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", Y_distance, probe_slow_rate);
+	snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", Y_distance, probe_slow_rate / 2);
 	message.message.assign(buff, sizeof(buff));
     THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 
@@ -835,8 +855,10 @@ void ATCHandler::fill_InCorner_scripts(float tool_dia, float X_distance, float Y
     THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
     
 	// close wired probe laser
-    message.message.assign("M494.2", 6);
-    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
+//    message.message.assign("M494.2", 6);	lsf modify 2026.05.11
+//    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
+    
+    THEKERNEL->set_3DProbeMode(false);
 }
 
 void ATCHandler::fill_InPocket_scripts(float tool_dia, float X_distance, float Y_distance, float Z_distance) {
@@ -850,12 +872,14 @@ void ATCHandler::fill_InPocket_scripts(float tool_dia, float X_distance, float Y
     message.stream = THEKERNEL->streams;
     THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
     
+    THEKERNEL->set_3DProbeMode(true);
+    
     message.message.assign("M497.5", 6);
     THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 
 	if( fabs(X_distance) > 0){
-		// do x probe with fast speed
-		snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", -X_distance, probe_fast_rate);
+		// do x probe with slow speed
+		snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", -X_distance, probe_slow_rate);
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 		
@@ -872,7 +896,7 @@ void ATCHandler::fill_InPocket_scripts(float tool_dia, float X_distance, float Y
 	    }
 		
 		// do x probe with slow speed
-		snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", -X_distance, probe_slow_rate);
+		snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", -X_distance, probe_slow_rate / 2);
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 		
@@ -891,8 +915,8 @@ void ATCHandler::fill_InPocket_scripts(float tool_dia, float X_distance, float Y
 	    	THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 	    }
 	    
-	    // do x probe with fast speed
-		snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", 2*X_distance, probe_fast_rate);
+	    // do x probe with slow speed
+		snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", 2*X_distance, probe_slow_rate);
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );  
 	    
@@ -910,7 +934,7 @@ void ATCHandler::fill_InPocket_scripts(float tool_dia, float X_distance, float Y
 	    
 	    
 	    // do x probe with slow speed
-		snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", X_distance, probe_slow_rate);
+		snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", X_distance, probe_slow_rate / 2);
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );  
 	    
@@ -929,8 +953,8 @@ void ATCHandler::fill_InPocket_scripts(float tool_dia, float X_distance, float Y
     
     if( fabs(Y_distance) > 0){
     
-	    // do y probe with fast speed
-		snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", -Y_distance, probe_fast_rate);
+	    // do y probe with slow speed
+		snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", -Y_distance, probe_slow_rate);
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 		
@@ -947,7 +971,7 @@ void ATCHandler::fill_InPocket_scripts(float tool_dia, float X_distance, float Y
 	    }
 		
 		// do Y probe with slow speed
-		snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", -Y_distance, probe_slow_rate);
+		snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", -Y_distance, probe_slow_rate / 2);
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 		
@@ -966,8 +990,8 @@ void ATCHandler::fill_InPocket_scripts(float tool_dia, float X_distance, float Y
 	    	THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 	    }
 	    
-	    // do Y probe with fast speed
-		snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", 2*Y_distance, probe_fast_rate);
+	    // do Y probe with slow speed
+		snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", 2*Y_distance, probe_slow_rate);
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );  
 	    
@@ -985,7 +1009,7 @@ void ATCHandler::fill_InPocket_scripts(float tool_dia, float X_distance, float Y
 	    
 	    
 	    // do Y probe with slow speed
-		snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", Y_distance, probe_slow_rate);
+		snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", Y_distance, probe_slow_rate / 2);
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );  
 	    
@@ -1002,8 +1026,10 @@ void ATCHandler::fill_InPocket_scripts(float tool_dia, float X_distance, float Y
 	}
     
 	// close wired probe laser
-    message.message.assign("M494.2", 6);
-    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
+//    message.message.assign("M494.2", 6);	lsf modify 2026.03.19
+//    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
+    
+    THEKERNEL->set_3DProbeMode(false);
 	
 }
 
@@ -1017,6 +1043,8 @@ void ATCHandler::fill_OutPocket_scripts(float tool_dia, float X_distance, float 
     message.message.assign("M494.1", 6);
     message.stream = THEKERNEL->streams;
     THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
+    
+    THEKERNEL->set_3DProbeMode(true);
     
     message.message.assign("M497.5", 6);
     THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
@@ -1083,8 +1111,8 @@ void ATCHandler::fill_OutPocket_scripts(float tool_dia, float X_distance, float 
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );    
 	
-		// do x probe with fast speed
-		snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", X_distance, probe_fast_rate);
+		// do x probe with slow speed
+		snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", X_distance, probe_slow_rate);
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
     
@@ -1106,7 +1134,7 @@ void ATCHandler::fill_OutPocket_scripts(float tool_dia, float X_distance, float 
 	    }
 		
 		// do x probe with slow speed
-		snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", X_distance, probe_slow_rate);
+		snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", X_distance, probe_slow_rate / 2);
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 		
@@ -1150,8 +1178,8 @@ void ATCHandler::fill_OutPocket_scripts(float tool_dia, float X_distance, float 
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 	
-		// do x probe with fast speed
-		snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", -2*X_distance, probe_fast_rate);
+		// do x probe with slow speed
+		snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", -2*X_distance, probe_slow_rate);
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 		
@@ -1168,7 +1196,7 @@ void ATCHandler::fill_OutPocket_scripts(float tool_dia, float X_distance, float 
 	    }
 		
 		// do x probe with slow speed
-		snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", -X_distance, probe_slow_rate);
+		snprintf(buff, sizeof(buff), "G38.2 X%.3f F%.3f", -X_distance, probe_slow_rate / 2);
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 		
@@ -1223,8 +1251,8 @@ void ATCHandler::fill_OutPocket_scripts(float tool_dia, float X_distance, float 
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 	
-		// do Y probe with fast speed
-		snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", Y_distance, probe_fast_rate);
+		// do Y probe with slow speed
+		snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", Y_distance, probe_slow_rate);
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 		
@@ -1241,7 +1269,7 @@ void ATCHandler::fill_OutPocket_scripts(float tool_dia, float X_distance, float 
 	    }
 		
 		// do Y probe with slow speed
-		snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", Y_distance, probe_slow_rate);
+		snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", Y_distance, probe_slow_rate / 2);
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 		
@@ -1285,8 +1313,8 @@ void ATCHandler::fill_OutPocket_scripts(float tool_dia, float X_distance, float 
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 	
-		// do Y probe with fast speed
-		snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", -2*Y_distance, probe_fast_rate);
+		// do Y probe with slow speed
+		snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", -2*Y_distance, probe_slow_rate);
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 		
@@ -1303,7 +1331,7 @@ void ATCHandler::fill_OutPocket_scripts(float tool_dia, float X_distance, float 
 	    }
 		
 		// do Y probe with slow speed
-		snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", -Y_distance, probe_slow_rate);
+		snprintf(buff, sizeof(buff), "G38.2 Y%.3f F%.3f", -Y_distance, probe_slow_rate / 2);
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 		
@@ -1337,9 +1365,11 @@ void ATCHandler::fill_OutPocket_scripts(float tool_dia, float X_distance, float 
 	}
 	
 	// close wired probe laser
-    message.message.assign("M494.2", 6);
-    message.stream = THEKERNEL->streams;
-    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
+//    message.message.assign("M494.2", 6);	lsf modify 2026.03.19
+//    message.stream = THEKERNEL->streams;
+//    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
+    
+    THEKERNEL->set_3DProbeMode(false);
 }
 
 
@@ -1539,6 +1569,8 @@ void ATCHandler::on_halt(void* argument)
 				this->beep_error();
 			}
 		}
+		
+	    THEKERNEL->set_3DProbeMode(false);
 	}
 }
 
@@ -1584,30 +1616,33 @@ uint32_t ATCHandler::read_detector(uint32_t dummy)
 // Called every second in an ISR
 uint32_t ATCHandler::countdown_probe_laser(uint32_t dummy)
 {
-	if(THEKERNEL->factory_set->FuncSetting & (1<<2))	//ATC 
+	if ( !THEKERNEL->is_3DProbeMode() )
 	{
-		if (this->probe_laser_last < 120) {
-			this->probe_laser_last ++;
-			PublicData::set_value(atc_handler_checksum, set_wp_laser_checksum, nullptr);
+		if(THEKERNEL->factory_set->FuncSetting & (1<<2))	//ATC 
+		{
+			if (this->probe_laser_last < 120) {
+				this->probe_laser_last ++;
+				PublicData::set_value(atc_handler_checksum, set_wp_laser_checksum, nullptr);
+			}
 		}
-	}
-	else 	//Manual Tool Change
-	{
-		if (THEKERNEL->is_probeLaserOn()) 
+		else 	//Manual Tool Change
 		{
-			if (this->probe_laser_last > 0) 
+			if (THEKERNEL->is_probeLaserOn()) 
 			{
-				this->probe_laser_last --;
+				if (this->probe_laser_last > 0) 
+				{
+					this->probe_laser_last --;
+				}
+				if (this->probe_laser_last == 0 || this->active_tool) {
+		    		bool b = false;
+		            PublicData::set_value( switch_checksum, detector_switch_checksum, state_checksum, &b );
+		            THEKERNEL->set_probeLaser(false);
+				}
+			} 
+			else
+			{
+				this->probe_laser_last = 300;
 			}
-			if (this->probe_laser_last == 0 || this->active_tool) {
-	    		bool b = false;
-	            PublicData::set_value( switch_checksum, detector_switch_checksum, state_checksum, &b );
-	            THEKERNEL->set_probeLaser(false);
-			}
-		} 
-		else
-		{
-			this->probe_laser_last = 300;
 		}
 	}
     return 0;
@@ -1902,6 +1937,16 @@ void ATCHandler::on_gcode_received(void *argument)
 					this->target_tool = new_tool;
 					this->fill_change_scripts(new_tool, true);
 					this->fill_cali_scripts(new_tool == 0, true);
+					if(new_tool == 9999)			//lsf add 2026.05.11
+					{
+						// open wired probe laser
+    					this->script_queue.push("M494.1");
+					}
+					else
+					{
+						// close wired probe laser
+    					this->script_queue.push("M494.2");
+					}
 				}
 	        }
 		} else if (gcode->m == 490)  {
@@ -2050,6 +2095,18 @@ void ATCHandler::on_gcode_received(void *argument)
 		        	    THEKERNEL->eeprom_data->TOOL = this->active_tool;
 		        	    THEKERNEL->write_eeprom_data();
 		    		}
+		    		if(this->active_tool == 9999)			//lsf add 2026.05.11
+					{
+						// open wired probe laser
+    					bool b = true;
+	            		PublicData::set_value( switch_checksum, detector_switch_checksum, state_checksum, &b );
+					}
+					else
+					{
+						// close wired probe laser
+    					bool b = false;
+	            		PublicData::set_value( switch_checksum, detector_switch_checksum, state_checksum, &b );
+					}
 
 				} else {
 					THEKERNEL->set_halt_reason(ATC_NO_TOOL);
@@ -2886,6 +2943,13 @@ void ATCHandler::on_main_loop(void *argument)
 		position_b = 88888888;
 		goto_position = -1;
     }
+    
+    if(this->active_tool == 9999)			//lsf add 2026.05.11
+	{
+		// open wired probe laser
+		bool b = true;
+	    PublicData::set_value( switch_checksum, detector_switch_checksum, state_checksum, &b );
+	}
 }
 
 // issue a coordinated move directly to robot, and return when done
