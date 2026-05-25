@@ -33,6 +33,7 @@
 #include "ThreePointStrategy.h"
 #include "DeltaGridStrategy.h"
 #include "CartGridStrategy.h"
+#include "ATCHandlerPublicAccess.h"
 
 #define enable_checksum          CHECKSUM("enable")
 #define probe_pin_checksum       CHECKSUM("probe_pin")
@@ -46,6 +47,7 @@
 #define max_z_checksum           CHECKSUM("max_z")
 #define reverse_z_direction_checksum CHECKSUM("reverse_z")
 #define dwell_before_probing_checksum CHECKSUM("dwell_before_probing")
+#define halt_on_probe_during_motion_checksum CHECKSUM("halt_on_probe_during_motion")
 
 // from endstop section
 #define delta_homing_checksum    CHECKSUM("delta_homing")
@@ -77,9 +79,11 @@ void ZProbe::on_module_loaded()
     // register event-handlers
     register_for_event(ON_GCODE_RECEIVED);
     register_for_event(ON_GET_PUBLIC_DATA);
+    register_for_event(ON_IDLE);
 
     // we read the probe in this timer
     probing = false;
+    calibrating = false;
     THEKERNEL->slow_ticker->attach(1000, this, &ZProbe::read_probe);
     THEKERNEL->slow_ticker->attach(1000, this, &ZProbe::read_calibrate);
 	if(!(THEKERNEL->factory_set->FuncSetting & (1<<2)))	//Manual Tool change 
@@ -159,30 +163,59 @@ void ZProbe::config_load()
         this->max_z = THEKERNEL->config->value(gamma_max_checksum)->by_default(200)->as_number(); // maximum zprobe distance
     }
     this->dwell_before_probing = THEKERNEL->config->value(zprobe_checksum, dwell_before_probing_checksum)->by_default(0)->as_number(); // dwell time in seconds before probing
+    this->motion_probe_guard = THEKERNEL->config->value(zprobe_checksum, halt_on_probe_during_motion_checksum)->by_default(true)->as_bool();
 
 }
 
 uint32_t ZProbe::read_probe(uint32_t dummy)
 {
-    if (!probing || probe_detected) return 0;
+    if (probing && !probe_detected) {
+        // we check all axis as it maybe a G38.2 X10 for instance, not just a probe in Z
+        if(STEPPER[X_AXIS]->is_moving() || STEPPER[Y_AXIS]->is_moving() || STEPPER[Z_AXIS]->is_moving()) {
+            // if it is moving then we check the probe, and debounce it
+            if (this->pin.get() != invert_probe) {
+                if (debounce < debounce_ms) {
+                    debounce ++;
+                } else {
+                    // we signal the motors to stop, which will preempt any moves on that axis
+                    // we do all motors as it may be a delta
+                    for (auto &a : THEROBOT->actuators) a->stop_moving();
+                    probe_detected = true;
+                    debounce = 0;
+                }
 
-    // we check all axis as it maybe a G38.2 X10 for instance, not just a probe in Z
-    if(STEPPER[X_AXIS]->is_moving() || STEPPER[Y_AXIS]->is_moving() || STEPPER[Z_AXIS]->is_moving()) {
-        // if it is moving then we check the probe, and debounce it
-        if (this->pin.get() != invert_probe) {
-            if (debounce < debounce_ms) {
-                debounce ++;
             } else {
-                // we signal the motors to stop, which will preempt any moves on that axis
-                // we do all motors as it may be a delta
-                for (auto &a : THEROBOT->actuators) a->stop_moving();
-                probe_detected = true;
+                // The endstop was not hit yet
                 debounce = 0;
             }
-
+        }
+        return 0;
+    }
+    
+    if(probe_detected) {
+    	if (debounce < 1000) {
+            debounce ++;
         } else {
-            // The endstop was not hit yet
+            probe_detected = 0;
             debounce = 0;
+        }
+    }
+
+    if (motion_probe_guard && !probing && !probe_detected && !calibrating && pin.connected() && !probe_guard_halt_pending) {
+        if ((STEPPER[X_AXIS]->is_moving() || STEPPER[Y_AXIS]->is_moving()) || (STEPPER[Z_AXIS]->is_moving() && STEPPER[Z_AXIS]->which_direction())) { //X/Y轴正在移动或Z轴在向下移动
+            if (this->pin.get() != invert_probe) {
+                if (motion_guard_db < debounce_ms) {
+                    motion_guard_db++;
+                } else {
+                    for (auto &a : THEROBOT->actuators) a->stop_moving();
+                    probe_guard_halt_pending = true;
+                    motion_guard_db = 0;
+                }
+            } else {
+                motion_guard_db = 0;
+            }
+        } else {
+            motion_guard_db = 0;
         }
     }
 
@@ -230,19 +263,24 @@ uint32_t ZProbe::probe_doubleHit(uint32_t dummy)
 		}
 		else if( bNoHited && (us_ticker_read() - probe_hit_time < 500000) )
 		{
-			if(bDoubleHited == false)
+			struct tool_status tool;
+		    PublicData::get_value( atc_handler_checksum, get_tool_status_checksum, &tool );
+			if ( !THEKERNEL->is_3DProbeMode() && (tool.active_tool != 9999))
 			{
-				THEKERNEL->set_probeLaser(true);
-				bool b = true;
-			    PublicData::set_value( switch_checksum, detector_switch_checksum, state_checksum, &b );		
-			    bDoubleHited = true;
-			}
-			else
-			{
-				THEKERNEL->set_probeLaser(false);
-				bool b = false;
-			    PublicData::set_value( switch_checksum, detector_switch_checksum, state_checksum, &b );		
-			    bDoubleHited = false;
+				if(bDoubleHited == false)
+				{
+					THEKERNEL->set_probeLaser(true);
+					bool b = true;
+				    PublicData::set_value( switch_checksum, detector_switch_checksum, state_checksum, &b );		
+				    bDoubleHited = true;
+				}
+				else
+				{
+					THEKERNEL->set_probeLaser(false);
+					bool b = false;
+				    PublicData::set_value( switch_checksum, detector_switch_checksum, state_checksum, &b );		
+				    bDoubleHited = false;
+				}
 			}
 		}
 		bNoHited = false;
@@ -292,7 +330,10 @@ bool ZProbe::run_probe(float& mm, float feedrate, float max_dist, bool reverse)
 
     // wait until finished
     THECONVEYOR->wait_for_idle();
-    if(THEKERNEL->is_halted()) return false;
+    if(THEKERNEL->is_halted()) {
+        probing = false;
+        return false;
+    }
 
     // now see how far we moved, get delta in z we moved
     // NOTE this works for deltas as well as all three actuators move the same amount in Z
@@ -301,12 +342,11 @@ bool ZProbe::run_probe(float& mm, float feedrate, float max_dist, bool reverse)
     // set the last probe position to the actuator units moved during this home
     THEROBOT->set_last_probe_position(std::make_tuple(0, 0, mm, probe_detected ? 1:0));
 
-    probing= false;
-
     if(probe_detected) {
         // if the probe stopped the move we need to correct the last_milestone as it did not reach where it thought
         THEROBOT->reset_position_from_current_actuator_position();
     }
+    probing= false;
 
     return probe_detected;
 }
@@ -466,12 +506,13 @@ void ZProbe::on_gcode_received(void *argument)
                     gcode->stream->printf("// Invert override set: %d\n", pin.is_inverting());
                 }
                 if (gcode->has_letter('D')) this->dwell_before_probing = gcode->get_value('D');
+                if (gcode->has_letter('Q')) this->motion_probe_guard = (gcode->get_value('Q') != 0);
                 break;
 
             case 500: // save settings
             case 503: // print settings
-                gcode->stream->printf(";Probe feedrates Slow/fast(K)/Return (mm/sec) max_z (mm) height (mm) dwell (s):\nM670 S%1.2f K%1.2f R%1.2f Z%1.2f H%1.2f D%1.2f\n",
-                    this->slow_feedrate, this->fast_feedrate, this->return_feedrate, this->max_z, this->probe_height, this->dwell_before_probing);
+                gcode->stream->printf(";Probe feedrates Slow/fast(K)/Return (mm/sec) max_z (mm) height (mm) dwell (s) motion_guard Q(0/1):\nM670 S%1.2f K%1.2f R%1.2f Z%1.2f H%1.2f D%1.2f Q%d\n",
+                    this->slow_feedrate, this->fast_feedrate, this->return_feedrate, this->max_z, this->probe_height, this->dwell_before_probing, this->motion_probe_guard ? 1 : 0);
 
                 // fall through is intended so leveling strategies can handle m-codes too
 
@@ -540,8 +581,8 @@ void ZProbe::probe_XYZ(Gcode *gcode)
 
     THEKERNEL->conveyor->wait_for_idle();
 
-    // disable probe checking
-    probing = false;
+    // Keep probing true until after post-processing: motion guard must stay off while the probe may still read
+    // triggered and is_moving() can be true briefly after conveyor idle.
 
     // if the probe stopped the move we need to correct the last_milestone as it did not reach where it thought
     // this also sets last_milestone to the machine coordinates it stopped at
@@ -558,9 +599,12 @@ void ZProbe::probe_XYZ(Gcode *gcode)
     if(probeok == 0 && (gcode->subcode == 2 || gcode->subcode == 4)) {
         // issue error if probe was not triggered and subcode is 2 or 4
         gcode->stream->printf("ALARM: Probe fail\n");
+        probing = false;
         THEKERNEL->set_halt_reason(PROBE_FAIL);
         THEKERNEL->call_event(ON_HALT, nullptr);
+        return;
     }
+    probing = false;
 }
 
 // just probe / calibrate Z using calibrate pin
@@ -609,8 +653,8 @@ void ZProbe::calibrate_Z(Gcode *gcode)
 
     THEKERNEL->conveyor->wait_for_idle();
 
-    // disable probe checking
-    calibrating = false;
+    // Keep calibrating true until after post-processing (same as probing in probe_XYZ): G38.6 may leave the tool
+    // probe pin triggered while calibrate_pin stopped the move; motion guard must not run until we are fully done.
 
     // if the probe stopped the move we need to correct the last_milestone as it did not reach where it thought
     // this also sets last_milestone to the machine coordinates it stopped at
@@ -627,14 +671,16 @@ void ZProbe::calibrate_Z(Gcode *gcode)
     if (calibrateok == 0) {
         // issue error if probe was not triggered and subcode is 2 or 4
         gcode->stream->printf("ALARM: Calibrate fail!\n");
+        calibrating = false;
         THEKERNEL->set_halt_reason(CALIBRATE_FAIL);
         THEKERNEL->call_event(ON_HALT, nullptr);
+        return;
     }
 
     if (probe_detected) {
     	this->probe_trigger_time = us_ticker_read();
     }
-
+    calibrating = false;
 }
 
 // issue a coordinated move directly to robot, and return when done
@@ -687,6 +733,18 @@ void ZProbe::home()
 {
     Gcode gc(THEKERNEL->is_grbl_mode() ? "G28.2" : "G28", &(StreamOutput::NullStream));
     THEKERNEL->call_event(ON_GCODE_RECEIVED, &gc);
+}
+
+void ZProbe::on_idle(void *argument)
+{
+    (void)argument;
+    if (!probe_guard_halt_pending) {
+        return;
+    }
+    probe_guard_halt_pending = false;
+    THEKERNEL->streams->printf("ALARM: unexpected probe trigger\n");
+    THEKERNEL->set_halt_reason(PROBE_FAIL);
+    THEKERNEL->call_event(ON_HALT, nullptr);
 }
 
 void ZProbe::on_get_public_data(void* argument)
