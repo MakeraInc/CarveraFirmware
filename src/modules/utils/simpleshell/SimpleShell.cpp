@@ -79,7 +79,7 @@ extern "C" uint32_t  _sbrk(int size);
 // support upload file type definition
 #define FILETYPE	"lz"		//compressed by quicklz
 // version definition
-#define VERSION "1.0.5"
+#define VERSION "1.0.6"
 
 // command lookup table
 const SimpleShell::ptentry_t SimpleShell::commands_table[] = {
@@ -314,7 +314,7 @@ void SimpleShell::on_console_line_received( void *argument )
             case 'G':
                 // issue get state
                 get_command("state", new_message.stream);
-//                new_message.stream->printf("ok\n");
+                new_message.stream->printf("ok\n");
                 break;
 
             case 'I':
@@ -331,7 +331,7 @@ void SimpleShell::on_console_line_received( void *argument )
 
             case '#':
                 grblDP_command("", new_message.stream);
-//                new_message.stream->printf("ok\n");
+                new_message.stream->printf("ok\n");
                 break;
 
             case 'H':
@@ -344,7 +344,7 @@ void SimpleShell::on_console_line_received( void *argument )
                     Gcode gcode("G28", new_message.stream);
                     THEKERNEL->call_event(ON_GCODE_RECEIVED, &gcode);
                 }
-//                new_message.stream->printf("ok\n");
+                new_message.stream->printf("ok\n");
                 break;
 
             case 'S':
