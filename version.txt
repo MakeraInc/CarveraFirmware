@@ -1,5 +1,11 @@
 Notice: 
 To let the Carvera work perfectly, please make sure both your controller software and firmware are up to date. For firmware, download the new firmware first, then use the 'update' function to upgrade the firmware, and reset the machine after the update is complete.
+[1.0.7]
+1. Bug fixing: Resolved the stuttering issue that occurred during pause, as well as the problem where the machine would run again after an abort.
+2. Bug fixing: Resolved the issue where the machine would move abnormally and cause machining failure when processing certain NC files containing thumbnail image information.
+3. Optimizing: Added handling for when the manual tool change process is interrupted — the tool number will now be set to empty instead of the originally targeted tool number.
+4. Optimization: Added manual speed adjustment functionality for the spindle fan and electrical cabinet fan (the speed must not be set below the temperature control value during adjustment).
+
 
 [1.0.5]
 Important Notes
