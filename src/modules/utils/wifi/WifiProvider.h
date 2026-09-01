@@ -11,6 +11,7 @@
 using namespace std;
 #include <vector>
 #include <queue>
+#include <string>
 
 #include "Pin.h"
 #include "Module.h"
@@ -65,6 +66,8 @@ private:
 
     void on_pin_rise();
     void receive_wifi_data();
+    bool enqueue_console_command(const std::string& command);
+    bool dequeue_console_command(std::string& command);
     unsigned int crc16_ccitt(unsigned char *data, unsigned int len);
     int CheckFilePacket(char** buf);
     
@@ -98,6 +101,7 @@ private:
     };
     
     ParseState currentState = WAIT_HEADER;    
+    RingBuffer<char, 256> buffer;
     int ptrData;
     int ptr_xbuff;
     

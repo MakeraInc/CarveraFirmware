@@ -46,6 +46,7 @@ class Switch : public Module {
 
         float switch_value;
         float default_on_value;
+        float manual_value; //zqq modify 2026.07.21
         float min_pwm;
         float max_pwm;
 

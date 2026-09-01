@@ -174,17 +174,15 @@ void SerialConsole::on_serial_char_received() {
                 break;
             }
             case PTYPE_CTRL_MULTI: {
-                struct SerialMessage message;
-                message.message.assign(Serialbuff+5, data_len-3);
-                message.stream = this;
-                THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
+                std::string received;
+                received.assign(Serialbuff+5, data_len-3);
+                enqueue_console_command(received);//zqq modify 2026.08.04
                 break;
             }
             case PTYPE_FILE_START: {
-                struct SerialMessage message;
-                message.message.assign(Serialbuff+5,data_len-3);
-                message.stream = this;
-                THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
+                std::string received;
+                received.assign(Serialbuff+5, data_len-3);
+                enqueue_console_command(received);//zqq modify 2026.08.04
                 break;
             }
             	
@@ -193,6 +191,52 @@ void SerialConsole::on_serial_char_received() {
         }
 	    
 	}
+}
+
+bool SerialConsole::enqueue_console_command(const std::string& command)//zqq modify 2026.08.04
+{
+    if(command.empty()) return false;
+
+    if((buffer.capacity() - buffer.size()) < static_cast<int>(command.size() + 1)) {
+        return false;
+    }
+
+    for(char c : command) {
+        buffer.push_back(c);
+    }
+
+    buffer.push_back('\n');
+    return true;
+}
+
+bool SerialConsole::dequeue_console_command(std::string& command)//zqq modify 2026.08.04
+{
+    if(!has_char('\n')) return false;
+
+    command.clear();
+    while(buffer.size() > 0) {
+        char c;
+        buffer.pop_front(c);
+        if(c == '\n') {
+            return !command.empty();
+        }
+        command.push_back(c);
+    }
+
+    command.clear();
+    return false;
+}
+
+bool SerialConsole::has_char(char letter)//zqq modify 2026.08.04
+{
+    int index = this->buffer.tail;
+    while(index != this->buffer.head) {
+        if(this->buffer.buffer[index] == letter) {
+            return true;
+        }
+        index = this->buffer.next_block_index(index);
+    }
+    return false;
 }
 
 unsigned int SerialConsole::crc16_ccitt(unsigned char *data, unsigned int len)
@@ -314,9 +358,16 @@ void SerialConsole::on_idle(void * argument)
     }
 }
 
-// Actual event calling must happen in the main loop because if it happens in the interrupt we will loose data
-void SerialConsole::on_main_loop(void * argument){
-    
+
+void SerialConsole::on_main_loop(void * argument){//zqq modify 2026.08.04
+    std::string command;
+    if(!dequeue_console_command(command)) return;
+
+    struct SerialMessage message;
+    message.message = command;
+    message.stream = this;
+    message.line = 0;
+    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message);
 
 }
 

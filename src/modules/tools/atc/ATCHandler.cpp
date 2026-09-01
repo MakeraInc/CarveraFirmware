@@ -140,7 +140,9 @@ void ATCHandler::fill_change_scripts(int new_tool, bool clear_z) {
 	this->script_queue.push("M490.1");
 
 	// set new tool
-	snprintf(buff, sizeof(buff), "M493.2 T%d", new_tool);
+	// snprintf(buff, sizeof(buff), "M493.2 T%d", new_tool);
+	// set new tool to -1
+	snprintf(buff, sizeof(buff), "M493.2 T-1");
 	this->script_queue.push(buff);
 }
 
@@ -1937,6 +1939,12 @@ void ATCHandler::on_gcode_received(void *argument)
 					this->target_tool = new_tool;
 					this->fill_change_scripts(new_tool, true);
 					this->fill_cali_scripts(new_tool == 0, true);
+					
+					// Commit a normal tool number only after the calibration script
+					char buff[32];
+					snprintf(buff, sizeof(buff), "M493.2 T%d", new_tool);
+					this->script_queue.push(buff);
+					
 					if(new_tool == 9999)			//lsf add 2026.05.11
 					{
 						// open wired probe laser
@@ -2485,6 +2493,7 @@ void ATCHandler::on_gcode_received(void *argument)
 			            		this->target_tool = 0;
 			            		this->fill_change_scripts(0, true);
 			            		this->fill_cali_scripts(true, true);
+			            		this->script_queue.push("M493.2 T0");
 			            	}
 			            }
 			            if (margin) {
@@ -3009,7 +3018,7 @@ void ATCHandler::on_get_public_data(void* argument)
     if(!pdr->starts_with(atc_handler_checksum)) return;
 
     if(pdr->second_element_is(get_tool_status_checksum)) {
-    	if (this->active_tool >= 0) {
+    	if (this->active_tool >= -1) {
             struct tool_status *t= static_cast<tool_status*>(pdr->get_data_ptr());
             t->active_tool = this->active_tool;
             t->target_tool = this->target_tool;

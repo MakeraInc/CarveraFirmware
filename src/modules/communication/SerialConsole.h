@@ -44,8 +44,10 @@ class SerialConsole : public Module, public StreamOutput {
 		int printf(const char *format, ...) __attribute__ ((format(printf, 2, 3)));
 
    private:
-   		
+
     	void PacketMessage(char cmd, const char* s, int size);
+		bool enqueue_console_command(const std::string& command);
+		bool dequeue_console_command(std::string& command);
     	int CheckFilePacket(char** buf);
 	    unsigned int crc16_ccitt(unsigned char *data, unsigned int len);
         mbed::Serial* serial;
@@ -55,6 +57,7 @@ class SerialConsole : public Module, public StreamOutput {
           bool diagnose_flag:1;
         };
     	ParseState currentState = WAIT_HEADER;    
+		RingBuffer<char, 256> buffer;
     	
 	    int ptrData;
 	    int ptr_xbuff;

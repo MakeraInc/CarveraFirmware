@@ -82,6 +82,7 @@ void Switch::on_halt(void *arg)
 void Switch::on_module_loaded()
 {
     this->switch_changed = false;
+    this->manual_value = 0; //zqq modify 2026.07.21
 
     this->register_for_event(ON_GCODE_RECEIVED);
     this->register_for_event(ON_MAIN_LOOP);
@@ -290,6 +291,7 @@ void Switch::on_config_reload(void *argument)
             	this->pwm_pin->write(confine(this->switch_value, this->min_pwm, this->max_pwm) / 100.0F);
             }
         }
+        this->manual_value = 0;
     }
 
     // Set the on/off command codes, Use GCode to do the parsing
@@ -443,8 +445,14 @@ void Switch::on_gcode_received(void *argument)
     // issuing redundant swicth on calls regularly we need to optimize by making sure the value is actually changing
     // hence we need to do the wait for queue in each case rather than just once at the start
     if(match_input_on_gcode(gcode)) {
+        if ((this->name_checksum == spindlefan_checksum || this->name_checksum == powerfan_checksum) && gcode->has_letter('S')) {
+            this->manual_value = confine(gcode->get_value('S'), 0.0F, 100.0F); //zqq modify 2026.07.21
+        }
     	this->turn_on_switch(gcode->has_letter('S') ? gcode->get_value('S') : -1);
     } else if (match_input_off_gcode(gcode)) {
+        if (this->name_checksum == spindlefan_checksum || this->name_checksum == powerfan_checksum) {
+            this->manual_value = 0; //zqq modify 2026.07.21
+        }
     	this->turn_off_switch();
     }
 }
@@ -464,6 +472,7 @@ void Switch::on_get_public_data(void *argument)
     pad->state = this->switch_state;
     pad->value = this->switch_value;
     pad->defaultvalue = this->default_on_value;
+    pad->manualvalue = this->manual_value; //zqq modify 2026.07.21
     pdr->set_taken();
 }
 

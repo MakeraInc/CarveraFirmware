@@ -55,7 +55,9 @@ extern unsigned char xbuff[XBUFF_LENGTH];
 extern unsigned char fbuff[4096];
 __attribute__((section("AHBSRAM1"), aligned(4))) char WifiSerialbuff[544];
 
-unsigned short crc_table[] = {
+
+
+unsigned short crc_table[] = {
 	0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
 	0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef,
 	0x1231, 0x0210, 0x3273, 0x2252, 0x52b5, 0x4294, 0x72f7, 0x62d6,
@@ -267,17 +269,15 @@ void WifiProvider::receive_wifi_data() {
             break;
         }
         case PTYPE_CTRL_MULTI: {
-            struct SerialMessage message;
-            message.message.assign(WifiSerialbuff+5, data_len-3);
-            message.stream = this;
-            THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
+            std::string received;
+            received.assign(WifiSerialbuff+5, data_len-3);
+            enqueue_console_command(received);//zqq modify 2026.08.04
             break;
         }
         case PTYPE_FILE_START: {
-            struct SerialMessage message;
-            message.message.assign(WifiSerialbuff+5,data_len-3);
-            message.stream = this;
-            THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
+            std::string received;
+            received.assign(WifiSerialbuff+5, data_len-3);
+            enqueue_console_command(received);//zqq modify 2026.08.04
             break;
         }
         	
@@ -285,6 +285,40 @@ void WifiProvider::receive_wifi_data() {
         	break;
     }
 
+}
+
+bool WifiProvider::enqueue_console_command(const std::string& command)//zqq modify 2026.08.04
+{
+    if(command.empty()) return false;
+
+    if((buffer.capacity() - buffer.size()) < static_cast<int>(command.size() + 1)) {
+        return false;
+    }
+
+    for(char c : command) {
+        buffer.push_back(c);
+    }
+
+    buffer.push_back('\n');
+    return true;
+}
+
+bool WifiProvider::dequeue_console_command(std::string& command)//zqq modify 2026.08.04
+{
+    if(!has_char('\n')) return false;
+
+    command.clear();
+    while(buffer.size() > 0) {
+        char c;
+        buffer.pop_front(c);
+        if(c == '\n') {
+            return !command.empty();
+        }
+        command.push_back(c);
+    }
+
+    command.clear();
+    return false;
 }
 
 
@@ -299,6 +333,18 @@ unsigned int WifiProvider::crc16_ccitt(unsigned char *data, unsigned int len)
 	}
 
 	return crc & 0xffff;
+}
+
+bool WifiProvider::has_char(char letter)//zqq modify 2026.08.04
+{
+    int index = this->buffer.tail;
+    while(index != this->buffer.head) {
+        if(this->buffer.buffer[index] == letter) {
+            return true;
+        }
+        index = this->buffer.next_block_index(index);
+    }
+    return false;
 }
 
 bool WifiProvider::ready() {
@@ -424,9 +470,16 @@ void WifiProvider::on_idle(void *argument)
     }
 }
 
-void WifiProvider::on_main_loop(void *argument)
+void WifiProvider::on_main_loop(void *argument)//zqq modify 2026.08.04
 {
-    
+    std::string command;
+    if(!dequeue_console_command(command)) return;
+
+    struct SerialMessage message;
+    message.message = command;
+    message.stream = this;
+    message.line = 0;
+    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message);
 }
 
 void WifiProvider::PacketMessage(char cmd, const char* s, int size)

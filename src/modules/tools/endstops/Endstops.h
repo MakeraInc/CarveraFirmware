@@ -52,6 +52,7 @@ class Endstops : public Module{
         float trim_mm[3];
 
         Pin cover_endstop_pin;
+        Pin cover_endstop_pin2;	//lsf add 2026.06.09
 
         // per endstop settings
         using endstop_info_t = struct {

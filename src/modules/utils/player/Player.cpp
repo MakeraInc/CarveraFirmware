@@ -451,6 +451,9 @@ void Player::goto_command( string parameters, StreamOutput *stream )
             played_lines += 1;
             played_cnt += len;
         }
+
+        // Keep the reported P line synchronized with the file position selected by goto.
+        this->playing_lines = this->played_lines;//zqq modify 2026.08.04
     }
 }
 
@@ -808,7 +811,8 @@ void Player::on_get_public_data(void *argument)
                 	this->playing_lines = block->line;
                 	p.played_lines = this->playing_lines;
                 } else {
-                	p.played_lines = this->played_lines;
+//                	 p.played_lines = this->played_lines;//zqq modify 2026.08.04
+                    p.played_lines = this->playing_lines;
                 }
         	} else {
         		p.played_lines = this->played_lines;
@@ -885,6 +889,8 @@ void Player::suspend_command(string parameters, StreamOutput *stream )
         THEKERNEL->set_waiting(false);
         return;
     }
+
+    this->playing_lines = this->played_lines;//zqq modify 2026.08.04
 
     THEKERNEL->set_waiting(false);
     THEKERNEL->set_suspending(true);
@@ -1081,7 +1087,7 @@ int Player::decompress(string sfilename, string dfilename, uint32_t sfilesize, S
 			u16Sum += fbuff[j];
 		}
 		// Set the file write system buffer 4096 Byte
-		setvbuf(f_out, (char*)&xbuff[4096], _IOFBF, 4096);
+//		setvbuf(f_out, (char*)&xbuff[4096], _IOFBF, 4096);
 		fwrite(fbuff, sizeof(char),u32DcmprsSize, f_out);
 		u32TotalDcmprsSize += u32DcmprsSize;
 		u32BlockNum += 1;

@@ -138,11 +138,15 @@ void TemperatureSwitch::on_second_tick(void *argument)
 	    if (current_temp >= this->temperatureswitch_threshold_temp) {
 //	    	if (cooldown_delay_counter != -99 && !THEKERNEL->is_uploading())
 //	    		THEKERNEL->streams->printf("Spindle temp: [%.2f], Turn on spindle fan...\r\n", current_temp);
-	    	struct pad_switch pad;
-	    	pad.state = true;
-	    	pad.value = temperatureswitch_cooldown_power_init + (current_temp - temperatureswitch_threshold_temp) * temperatureswitch_cooldown_power_step;
-		    ok = PublicData::set_value(switch_checksum, this->temperatureswitch_switch_cs, state_value_checksum, &pad);
-		    if (!ok) {
+	    	struct pad_switch pad; //zqq modify 2026.07.21
+	    	bool ok = PublicData::get_value(switch_checksum, this->temperatureswitch_switch_cs, 0, &pad); //zqq modify 2026.07.21
+			if (ok) { //zqq modify 2026.07.21
+				pad.state = true; //zqq modify 2026.07.21
+				float tempvalue = temperatureswitch_cooldown_power_init + (current_temp - temperatureswitch_threshold_temp) * temperatureswitch_cooldown_power_step; //zqq modify 2026.07.21
+				pad.value = (pad.manualvalue > tempvalue) ? pad.manualvalue : tempvalue; //zqq modify 2026.07.21
+				ok = PublicData::set_value(switch_checksum, this->temperatureswitch_switch_cs, state_value_checksum, &pad); //zqq modify 2026.07.21
+			} //zqq modify 2026.07.21
+		    if (!ok) { //zqq modify 2026.07.21
 		    	if(CARVERA == THEKERNEL->factory_set->MachineModel)
 	    		{
 		        	THEKERNEL->streams->printf("Error turn on spindle fan.\r\n");
