@@ -1,5 +1,9 @@
 Notice: 
 To let the Carvera work perfectly, please make sure both your controller software and firmware are up to date. For firmware, download the new firmware first, then use the 'update' function to upgrade the firmware, and reset the machine after the update is complete.
+[1.0.8]
+1. Optimization: Optimize the probe calibration strategy to prevent false alarms of probe failure.
+2. Optimization: Optimize the 3D probe crash protection.
+
 [1.0.7]
 1. Bug fixing: Resolved the stuttering issue that occurred during pause, as well as the problem where the machine would run again after an abort.
 2. Bug fixing: Resolved the issue where the machine would move abnormally and cause machining failure when processing certain NC files containing thumbnail image information.
