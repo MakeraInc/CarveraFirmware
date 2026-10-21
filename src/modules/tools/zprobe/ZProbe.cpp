@@ -200,8 +200,11 @@ uint32_t ZProbe::read_probe(uint32_t dummy)
             debounce = 0;
         }
     }
+	
+	struct tool_status tool;	//lsf add 2026.10.19
+	PublicData::get_value( atc_handler_checksum, get_tool_status_checksum, &tool );	//lsf add 2026.10.19
 
-    if (motion_probe_guard && !probing && !probe_detected && !calibrating && pin.connected() && !probe_guard_halt_pending) {
+    if (motion_probe_guard && !probing && !probe_detected && !calibrating && pin.connected() && !probe_guard_halt_pending && ((tool.active_tool == 9999) || (tool.active_tool == 0))) {
         if ((STEPPER[X_AXIS]->is_moving() || STEPPER[Y_AXIS]->is_moving()) || (STEPPER[Z_AXIS]->is_moving() && STEPPER[Z_AXIS]->which_direction())) { //X/Y轴正在移动或Z轴在向下移动
             if (this->pin.get() != invert_probe) {
                 if (motion_guard_db < debounce_ms) {
@@ -611,8 +614,14 @@ void ZProbe::probe_XYZ(Gcode *gcode)
 void ZProbe::calibrate_Z(Gcode *gcode)
 {
     float z= 0;
+    int isprobe = 0;	//lsf add 2026.09.28
+    
     if(gcode->has_letter('Z')) {
         z= gcode->get_value('Z');
+    }
+    //lsf add 2026.09.28
+    if(gcode->has_letter('P')) {
+        isprobe = gcode->get_value('P');
     }
 
     if(z == 0) {
@@ -679,6 +688,26 @@ void ZProbe::calibrate_Z(Gcode *gcode)
 
     if (probe_detected) {
     	this->probe_trigger_time = us_ticker_read();
+    }
+    else	//lsf modify 2026.09.28
+    {
+    	gcode->stream->printf("1\n");
+    	if(isprobe != 0)
+    	{
+    	gcode->stream->printf("2\n");
+    		// do a delta move which will stop as soon as the probe is triggered, or the distance is reached
+		    float delta[3]= {0, 0, -1};
+		    this->probing = true;
+		    THEROBOT->delta_move(delta, rate, 3);		    
+    		THEKERNEL->conveyor->wait_for_idle();
+    		
+		    this->probing = false;
+		    if (probe_detected) {
+		    	
+    	gcode->stream->printf("3\n");
+		    	this->probe_trigger_time = us_ticker_read();
+		    }
+    	}
     }
     calibrating = false;
 }

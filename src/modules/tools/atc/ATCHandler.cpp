@@ -273,7 +273,14 @@ void ATCHandler::fill_cali_scripts(bool is_probe, bool clear_z) {
 	snprintf(buff, sizeof(buff), "G91 G0 Z%.3f", THEROBOT->from_millimeters(probe_retract_mm));
 	this->script_queue.push(buff);
 	// do calibrate with slow speed
-	snprintf(buff, sizeof(buff), "G38.6 Z%.3f F%.3f", -1 - probe_retract_mm, probe_slow_rate);
+	if (is_probe)	//lsf modify 2026.09.28
+	{
+		snprintf(buff, sizeof(buff), "G38.6 Z%.3f F%.3f P1", -1 - probe_retract_mm, probe_slow_rate);
+	}
+	else
+	{
+		snprintf(buff, sizeof(buff), "G38.6 Z%.3f F%.3f", -1 - probe_retract_mm, probe_slow_rate);
+	}
 	this->script_queue.push(buff);
 	// save new tool offset
 	this->script_queue.push("M493.1");
@@ -528,7 +535,7 @@ void ATCHandler::fill_xyzprobe_scripts(float tool_dia, float probe_height) {
 	this->script_queue.push(buff);
 	
 	// close wired probe laser
-	this->script_queue.push("M494.2");
+    this->script_queue.push("M494.2");
 	
 	THEKERNEL->set_3DProbeMode(false);
 
@@ -1160,8 +1167,14 @@ void ATCHandler::fill_OutPocket_scripts(float tool_dia, float X_distance, float 
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 	    
+	    // move x to start pos
+	    snprintf(buff, sizeof(buff), "G53 G0 X%.3f", THEROBOT->from_millimeters(mpos[0]));	//lsf add 2026.09.28
+		message.message.assign(buff, sizeof(buff));
+	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
+	    
 	    // move x outside(the other direction)
-		snprintf(buff, sizeof(buff), "G91 G0 X%.3f", THEROBOT->from_millimeters(2*X_distance+5));
+		//snprintf(buff, sizeof(buff), "G91 G0 X%.3f", THEROBOT->from_millimeters(2*X_distance+5)); //lsf modify 2026.09.28
+		snprintf(buff, sizeof(buff), "G91 G0 X%.3f", THEROBOT->from_millimeters(X_distance));
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
     
@@ -1295,8 +1308,14 @@ void ATCHandler::fill_OutPocket_scripts(float tool_dia, float X_distance, float 
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
 	    
+	    // move y to start pos
+	    snprintf(buff, sizeof(buff), "G53 G0 Y%.3f", THEROBOT->from_millimeters(mpos[1]));	//lsf add 2026.09.28
+		message.message.assign(buff, sizeof(buff));
+	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
+	    
 	    // move Y outside(the other direction)
-		snprintf(buff, sizeof(buff), "G91 G0 Y%.3f", THEROBOT->from_millimeters(2*Y_distance+5));
+		//snprintf(buff, sizeof(buff), "G91 G0 Y%.3f", THEROBOT->from_millimeters(2*Y_distance+5));	lsf modify 2026.09.28
+		snprintf(buff, sizeof(buff), "G91 G0 Y%.3f", THEROBOT->from_millimeters(Y_distance));
 		message.message.assign(buff, sizeof(buff));
 	    THEKERNEL->call_event(ON_CONSOLE_LINE_RECEIVED, &message );
     
@@ -1629,7 +1648,7 @@ uint32_t ATCHandler::countdown_probe_laser(uint32_t dummy)
 		}
 		else 	//Manual Tool Change
 		{
-			if (THEKERNEL->is_probeLaserOn()) 
+			if (THEKERNEL->is_probeLaserOn() && (active_tool != 9999)) //lsf modify 2026.09.28
 			{
 				if (this->probe_laser_last > 0) 
 				{
@@ -1896,7 +1915,8 @@ void ATCHandler::on_gcode_received(void *argument)
 	                		// just pick up tool
 	                		atc_status = PICK;
 	                		this->fill_pick_scripts(new_tool, true);
-	                		this->fill_cali_scripts(new_tool == 0, false);
+	                		//this->fill_cali_scripts(new_tool == 0, false);	lsf modify 2026.09.28
+	                		this->fill_cali_scripts((new_tool == 0)||(new_tool == 9999), false);
 	                	} else if (new_tool < 0) {
 	                		gcode->stream->printf("Start dropping current tool: T%d\r\n", this->active_tool);
 	                		// just drop tool
@@ -1911,7 +1931,8 @@ void ATCHandler::on_gcode_received(void *argument)
 	                		atc_status = FULL;
 	                	    this->fill_drop_scripts(active_tool);
 	                	    this->fill_pick_scripts(new_tool, false);
-	                	    this->fill_cali_scripts(new_tool == 0, false);
+	                	    //this->fill_cali_scripts(new_tool == 0, false); lsf modify 2026.09.28
+	                	    this->fill_cali_scripts((new_tool == 0)||(new_tool == 9999), false);
 	                	}
 	            	} else if (new_tool == -1  && THEKERNEL->get_laser_mode()) {
 	            		// calibrate
@@ -1938,8 +1959,8 @@ void ATCHandler::on_gcode_received(void *argument)
 					atc_status = CHANGE;
 					this->target_tool = new_tool;
 					this->fill_change_scripts(new_tool, true);
-					this->fill_cali_scripts(new_tool == 0, true);
-					
+					//this->fill_cali_scripts(new_tool == 0, true);	lsf modify 2026.09.28
+					this->fill_cali_scripts((new_tool == 0)||(new_tool == 9999), true);
 					// Commit a normal tool number only after the calibration script
 					char buff[32];
 					snprintf(buff, sizeof(buff), "M493.2 T%d", new_tool);
@@ -2051,7 +2072,8 @@ void ATCHandler::on_gcode_received(void *argument)
             set_inner_playing(true);
             this->clear_script_queue();
             atc_status = CALI;
-    	    this->fill_cali_scripts(active_tool == 0, true);
+    	    //this->fill_cali_scripts(active_tool == 0, true);	lsf modify 2026.09.28
+    	    this->fill_cali_scripts((active_tool == 0)||(active_tool == 9999), true);
 		} else if (gcode->m == 492) {
 			if(THEKERNEL->factory_set->FuncSetting & (1<<2))	//ATC 
 			{
@@ -2471,7 +2493,8 @@ void ATCHandler::on_gcode_received(void *argument)
 						set_inner_playing(true);
 						atc_status = AUTOMATION;
 			            this->clear_script_queue();
-			            if (active_tool != 0) {
+			            //if (active_tool != 0) {	lsf modify 2026.09.28
+			            if (((active_tool != 0)&&margin) || ( ((active_tool != 0)&&(active_tool != 9999)) && (zprobe||leveling) )) {
 			            	// need to change to probe tool first
 			        		gcode->stream->printf("Change to probe tool first!\r\n");
 			                // save current position
