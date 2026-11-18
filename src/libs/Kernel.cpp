@@ -883,7 +883,7 @@ void Kernel::read_Factory_data()
 	
 	if( Check_Factory_Data((unsigned char*)i2c_buffer, sizeof(FACTORY_SET)+2 ) )
 	{
-    	memcpy(this->factory_set, &i2c_buffer[2], size);
+    	memcpy(this->factory_set, &i2c_buffer[2], sizeof(FACTORY_SET));		//lsf modify 2026.11.04
     }
     else
     {
